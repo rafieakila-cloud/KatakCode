@@ -396,8 +396,9 @@ function renderAttachRow() {
   const row = $('#attachRow');
   const items = [];
   if (state.project) {
-    const totalKB = Math.round(state.project.files.reduce((s, f) => s + (f.text || '').length, 0) / 1024);
-    items.push(`<span class="file-chip project-chip"><svg><use href="#i-folder"/></svg><b>${escapeHTML(state.project.name)}</b>${state.project.files.length} file · ${totalKB} KB<button data-detach-project aria-label="Lepas proyek" title="Lepas proyek"><svg><use href="#i-close"/></svg></button></span>`);
+    const totalText = state.project.files.reduce((s, f) => s + (f.text || '').length, 0);
+    const sizeLabel = totalText < 1024 ? `${totalText} B` : `${(totalText / 1024).toFixed(1)} KB`;
+    items.push(`<span class="file-chip project-chip"><svg><use href="#i-folder"/></svg><b>${escapeHTML(state.project.name)}</b>${state.project.files.length} file · ${sizeLabel}<button data-detach-project aria-label="Lepas proyek" title="Lepas proyek"><svg><use href="#i-close"/></svg></button></span>`);
   }
   state.attachments.forEach((a, i) => {
     items.push(`<span class="file-chip"><svg><use href="#i-file"/></svg><b>${escapeHTML(a.name)}</b>${(a.size / 1024).toFixed(0)} KB<button data-detach="${i}" aria-label="Lepas file" title="Lepas"><svg><use href="#i-close"/></svg></button></span>`);

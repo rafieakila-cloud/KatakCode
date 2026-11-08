@@ -92,6 +92,7 @@
       <button class="chip">Fix error di file ini</button>
       <button class="chip">Tulis unit test</button>
       <button class="chip">Konversi ke TypeScript</button>
+      <button class="chip">Buat mockup UI (HTML)</button>
       <button class="chip chip-project" id="emptyAddProject"><svg><use href="#i-folder"/></svg>Tambah Folder Proyek</button>
     </div>
   </div>
@@ -113,7 +114,7 @@
   </div>
 </main>
 
-<input type="file" id="fileInput" accept=".js,.ts,.jsx,.tsx,.py,.java,.c,.cpp,.h,.cs,.go,.rs,.rb,.php,.swift,.kt,.html,.css,.scss,.vue,.svelte,.json,.md,.txt,.yml,.yaml,.toml,.sql,.env,.gitignore,.sh,.bat,.ps1" multiple hidden />
+<input type="file" id="fileInput" accept="image/*,video/*,.js,.ts,.jsx,.tsx,.py,.java,.c,.cpp,.h,.cs,.go,.rs,.rb,.php,.swift,.kt,.html,.css,.scss,.vue,.svelte,.json,.md,.txt,.yml,.yaml,.toml,.sql,.env,.gitignore,.sh,.bat,.ps1" multiple hidden />
 <input type="file" id="projectInput" webkitdirectory multiple hidden />
 
 <!-- ===== PENGATURAN AI (layar penuh) ===== -->
@@ -145,6 +146,15 @@
 
     <p class="credit">KatakCode · Buggames Studio · PWA lokal-dulu · <span id="appVersion">v1.0</span></p>
   </div>
+</div>
+
+<!-- ===== PREVIEW HTML (dari code block) ===== -->
+<div class="preview-modal" id="previewModal" hidden role="dialog" aria-label="Preview HTML">
+  <div class="preview-head">
+    <span class="preview-title">PREVIEW</span>
+    <button class="sq-btn small" id="closePreview" aria-label="Tutup preview"><svg><use href="#i-close"/></svg></button>
+  </div>
+  <iframe id="previewFrame" sandbox="allow-scripts" title="Preview HTML dari KatakCode"></iframe>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

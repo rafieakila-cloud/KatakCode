@@ -173,13 +173,86 @@ const state = {
   lastAiId: null,
 };
 
-const fileToAttachment = (file) => new Promise((resolve) => {
-  if (file.size > 120 * 1024) { resolve({ name: file.name, size: file.size, text: '', tooBig: true }); return; }
+const fileToAttachment = async (file) => {
+  const isImage = /^image\//.test(file.type) || /\.(png|jpe?g|webp|gif|avif)$/i.test(file.name);
+  const isVideo = /^video\//.test(file.type) || /\.(mp4|webm|mkv|mov|ogg|m4v)$/i.test(file.name);
+
+  if (isImage) {
+    const dataUrl = await downscaleImage(file, 1280, 0.8);
+    return { name: file.name, size: Math.round(dataUrl.length * 0.75), kind: 'image', type: file.type, dataUrl };
+  }
+  if (isVideo) {
+    if (file.size > 40 * 1024 * 1024) return { name: file.name, size: file.size, kind: 'file', type: file.type, text: '', tooBig: true };
+    const poster = await makeVideoThumb(file);
+    return { name: file.name, size: file.size, kind: 'video', type: file.type, blob: file, poster: poster ? await blobToDataUrl(poster) : null };
+  }
+  if (file.size > 120 * 1024) return { name: file.name, size: file.size, kind: 'file', type: file.type, text: '', tooBig: true };
+  const text = await readFileText(file);
+  return { name: file.name, size: file.size, kind: 'file', type: file.type, text };
+};
+
+const readFileText = (file) => new Promise((resolve) => {
   const reader = new FileReader();
-  reader.onload = () => resolve({ name: file.name, size: file.size, text: String(reader.result) });
-  reader.onerror = () => resolve({ name: file.name, size: file.size, text: '', tooBig: true });
+  reader.onload = () => resolve(String(reader.result));
+  reader.onerror = () => resolve('');
   reader.readAsText(file);
 });
+
+const blobToDataUrl = (blob) => new Promise((resolve) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result));
+  reader.onerror = () => resolve(null);
+  reader.readAsDataURL(blob);
+});
+
+const downscaleImage = (file, maxSize, quality) => new Promise((resolve) => {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const ratio = Math.min(1, maxSize / Math.max(img.width, img.height));
+    if (ratio === 1 && file.size < 700 * 1024) {
+      const reader = new FileReader();
+      reader.onload = () => { URL.revokeObjectURL(url); resolve(String(reader.result)); };
+      reader.onerror = () => { URL.revokeObjectURL(url); resolve(url); };
+      reader.readAsDataURL(file);
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.width * ratio);
+    canvas.height = Math.round(img.height * ratio);
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    canvas.toBlob((blob) => {
+      if (!blob) return resolve(url);
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => resolve(url);
+      reader.readAsDataURL(blob);
+    }, 'image/jpeg', quality);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+  img.src = url;
+});
+
+async function makeVideoThumb(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.muted = true; v.preload = 'metadata'; v.src = url;
+    const done = (blob) => { URL.revokeObjectURL(url); resolve(blob); };
+    v.addEventListener('loadedmetadata', () => { v.currentTime = Math.min(1, (v.duration || 2) * 0.1); });
+    v.addEventListener('seeked', () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = 480; c.height = 270;
+        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        c.toBlob(done, 'image/jpeg', 0.72);
+      } catch { done(null); }
+    });
+    v.addEventListener('error', () => done(null));
+    setTimeout(() => done(null), 8000);
+  });
+}
 
 /* ================= RENDER PESAN ================= */
 function linkifyHTML(text) {
@@ -210,7 +283,8 @@ function renderContent(raw) {
       const nl = part.indexOf('\n');
       const lang = nl > -1 ? part.slice(0, nl).trim() : 'code';
       const code = nl > -1 ? part.slice(nl + 1) : part;
-      html += `<div class="codeblock"><div class="code-head"><span>${escapeHTML(lang || 'code')}</span><button class="copy-btn" data-copy>Salin</button></div><pre>${highlight(code.replace(/\n$/, ''))}</pre></div>`;
+      const isHtml = /^(html|htm|xhtml)$/i.test(lang);
+      html += `<div class="codeblock"><div class="code-head"><span>${escapeHTML(lang || 'code')}</span><div class="code-actions"><button class="copy-btn" data-copy>Salin</button><button class="copy-btn" data-download>Unduh</button>${isHtml ? '<button class="copy-btn" data-preview>Preview</button>' : ''}</div></div><pre>${highlight(code.replace(/\n$/, ''))}</pre></div>`;
     } else {
       html += linkifyHTML(part);
     }
@@ -221,9 +295,13 @@ function renderContent(raw) {
 function bubbleHTML(msg, id) {
   if (msg.role === 'user') {
     const proj = msg.project ? `<span class="file-chip project-chip"><svg><use href="#i-folder"/></svg><b>${escapeHTML(msg.project)}</b>proyek</span>` : '';
-    const chips = (msg.attachments || []).filter(a => a && a.name).map(a => `<span class="file-chip"><svg><use href="#i-file"/></svg><b>${escapeHTML(a.name)}</b>${a.size ? (a.size / 1024).toFixed(0) + ' KB' : ''}</span>`).join('');
+    const chips = (msg.attachments || []).filter(a => a && a.name).map((a, ai) => {
+      if (a.kind === 'image' && a.dataUrl) return `<img class="msg-img" src="${a.dataUrl}" alt="${escapeHTML(a.name)}" loading="lazy">`;
+      if (a.kind === 'video') return `<video class="msg-video" data-vid="${id}-${ai}" controls preload="metadata" ${a.poster ? `poster="${a.poster}"` : ''}></video>`;
+      return `<span class="file-chip"><svg><use href="#i-file"/></svg><b>${escapeHTML(a.name)}</b>${a.size ? (a.size / 1024).toFixed(0) + ' KB' : ''}</span>`;
+    }).join('');
     const allChips = proj + chips;
-    return `<div class="msg user">${allChips ? `<div class="attach-chips">${allChips}</div>` : ''}<div class="bubble">${linkifyHTML(msg.content)}</div></div>`;
+    return `<div class="msg user">${allChips ? `<div class="attach-chips${chips.includes('msg-img') || chips.includes('msg-video') ? ' media-chips' : ''}">${allChips}</div>` : ''}<div class="bubble">${linkifyHTML(msg.content)}</div></div>`;
   }
   return `<div class="msg assistant" data-msg-id="${id}">
     <div class="bubble">${renderContent(msg.content)}</div>
@@ -237,6 +315,12 @@ function bubbleHTML(msg, id) {
 function renderMessages() {
   const box = $('#messages');
   box.innerHTML = state.messages.map((m, i) => bubbleHTML(m, i)).join('');
+  // Isi src video dari blob tersimpan
+  $$('.msg-video[data-vid]', box).forEach(v => {
+    const [mi, ai] = v.dataset.vid.split('-').map(Number);
+    const att = state.messages[mi]?.attachments?.filter(a => a && a.name)[ai];
+    if (att?.blob) { if (!att.__objUrl) att.__objUrl = URL.createObjectURL(att.blob); v.src = att.__objUrl; }
+  });
   box.scrollTop = box.scrollHeight;
   $('#emptyState').classList.toggle('visible', state.messages.length === 0);
   box.classList.toggle('has-content', state.messages.length > 0);
@@ -380,13 +464,20 @@ $('#projectInput').addEventListener('change', async (e) => {
 
 $('#fileInput').addEventListener('change', async (e) => {
   const files = [...e.target.files].slice(0, 6);
-  let total = state.attachments.reduce((s, a) => s + (a.text || '').length, 0);
+  let textTotal = state.attachments.reduce((s, a) => s + (a.text || '').length, 0);
+  let mediaCount = state.attachments.filter(a => a.kind === 'image' || a.kind === 'video').length;
   for (const file of files) {
-    if (state.attachments.length >= 6) { showToast('Maksimal 6 file per pesan'); break; }
+    if (state.attachments.length >= 6) { showToast('Maksimal 6 lampiran per pesan'); break; }
     const att = await fileToAttachment(file);
-    if (att.tooBig) { showToast(`“${file.name}” > 120 KB dilewati`); continue; }
-    if (total + att.text.length > 250 * 1024) { showToast('Total lampiran kepenuhan (250 KB)'); break; }
-    total += att.text.length;
+    if (att.tooBig) { showToast(`“${file.name}” kegedean — ${att.kind === 'video' ? 'maks 40 MB' : 'maks 120 KB'}`); continue; }
+    if (att.kind === 'file' && !att.text) { showToast(`“${file.name}” tidak terbaca`); continue; }
+    if (att.kind === 'file' && textTotal + att.text.length > 250 * 1024) { showToast('Teks total lampiran penuh (250 KB)'); break; }
+    if (att.kind !== 'file') {
+      if (mediaCount >= 3) { showToast('Maksimal 3 foto/video per pesan'); break; }
+      mediaCount++;
+    } else {
+      textTotal += att.text.length;
+    }
     state.attachments.push(att);
   }
   renderAttachRow();
@@ -401,7 +492,14 @@ function renderAttachRow() {
     items.push(`<span class="file-chip project-chip"><svg><use href="#i-folder"/></svg><b>${escapeHTML(state.project.name)}</b>${state.project.files.length} file · ${sizeLabel}<button data-detach-project aria-label="Lepas proyek" title="Lepas proyek"><svg><use href="#i-close"/></svg></button></span>`);
   }
   state.attachments.forEach((a, i) => {
-    items.push(`<span class="file-chip"><svg><use href="#i-file"/></svg><b>${escapeHTML(a.name)}</b>${(a.size / 1024).toFixed(0)} KB<button data-detach="${i}" aria-label="Lepas file" title="Lepas"><svg><use href="#i-close"/></svg></button></span>`);
+    if (a.kind === 'image' && a.dataUrl) {
+      items.push(`<span class="file-chip media-chip"><img class="chip-thumb" src="${a.dataUrl}" alt="${escapeHTML(a.name)}"><b>${escapeHTML(a.name)}</b><button data-detach="${i}" aria-label="Lepas gambar" title="Lepas"><svg><use href="#i-close"/></svg></button></span>`);
+    } else if (a.kind === 'video') {
+      const poster = a.poster ? `<img class="chip-thumb" src="${a.poster}" alt="${escapeHTML(a.name)}">` : `<svg><use href="#i-file"/></svg>`;
+      items.push(`<span class="file-chip media-chip">${poster}<b>${escapeHTML(a.name)}</b>${(a.size / 1048576).toFixed(1)} MB<button data-detach="${i}" aria-label="Lepas video" title="Lepas"><svg><use href="#i-close"/></svg></button></span>`);
+    } else {
+      items.push(`<span class="file-chip"><svg><use href="#i-file"/></svg><b>${escapeHTML(a.name)}</b>${(a.size / 1024).toFixed(0)} KB<button data-detach="${i}" aria-label="Lepas file" title="Lepas"><svg><use href="#i-close"/></svg></button></span>`);
+    }
   });
   if (!items.length) { row.hidden = true; row.innerHTML = ''; return; }
   row.hidden = false;
@@ -429,22 +527,43 @@ function speak(text) {
 }
 
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (!SpeechRec) { $('#btnMic').style.display = 'none'; }
-else {
+if (!SpeechRec) {
+  $('#btnMic').addEventListener('click', () => showToast('Mikrofon tidak didukung di browser ini'));
+} else {
   const rec = new SpeechRec();
   rec.lang = 'id-ID'; rec.interimResults = true; rec.maxAlternatives = 1;
   let listening = false;
+  const setMicState = (on) => { listening = on; $('#btnMic').setAttribute('aria-pressed', on ? 'true' : 'false'); $('#btnMic').classList.toggle('listening', on); };
   $('#btnMic').addEventListener('click', () => {
-    if (listening) { rec.stop(); return; }
-    try { rec.start(); listening = true; $('#btnMic').setAttribute('aria-pressed', 'true'); showToast('Kodok mendengarkan… bicara'); } catch { listening = false; }
+    if (listening) { try { rec.stop(); } catch { /* abaikan */ } return; }
+    try {
+      rec.start();
+      setMicState(true);
+      showToast('Kodok mendengarkan… bicara');
+    } catch (err) {
+      setMicState(false);
+      const name = err?.name || '';
+      if (name === 'NotAllowedError' || name === 'SecurityError') showToast('Izin mikrofon ditolak — izinkan mikrofon di setelan situs Chrome');
+      else if (name === 'NotFoundError') showToast('Mikrofon tidak ditemukan di perangkat ini');
+      else if (name === 'NotReadableError') showToast('Mikrofon dipakai aplikasi lain');
+      else showToast('Mic gagal mulai: ' + (name || 'error tidak diketahui'));
+    }
   });
   rec.addEventListener('result', (e) => {
     let txt = '';
     for (const r of e.results) txt += r[0].transcript;
     $('#input').value = txt;
+    $('#input').dispatchEvent(new Event('input'));
   });
-  rec.addEventListener('end', () => { listening = false; $('#btnMic').setAttribute('aria-pressed', 'false'); });
-  rec.addEventListener('error', () => { listening = false; $('#btnMic').setAttribute('aria-pressed', 'false'); });
+  rec.addEventListener('end', () => setMicState(false));
+  rec.addEventListener('error', (e) => {
+    setMicState(false);
+    const code = e?.error || '';
+    if (code === 'not-allowed' || code === 'service-not-allowed') showToast('Izin mikrofon ditolak — izinkan mikrofon untuk KatakCode');
+    else if (code === 'no-speech') showToast('Kodok tidak menangkap suara — coba lagi');
+    else if (code === 'audio-capture') showToast('Mikrofon tidak bisa diakses');
+    else if (code === 'network') showToast('Mic butuh koneksi internet (Google Speech)');
+  });
 }
 
 /* ================= KIRIM & STREAMING ================= */
@@ -464,7 +583,11 @@ function buildMessages() {
   const history = state.messages.slice(-24).map(m => {
     let content = m.content;
     if (m.attachments?.length) {
-      const attText = m.attachments.map(a => `\n\n--- FILE: ${a.name} (${(a.size / 1024).toFixed(0)} KB) ---\n${a.text || '[tidak terbaca]'}`).join('');
+      const attText = m.attachments.map(a => {
+        if (a.kind === 'image') return `\n\n--- GAMBAR: ${a.name} (AI teks tidak bisa melihat isinya; pengguna bisa melihatnya di layar) ---`;
+        if (a.kind === 'video') return `\n\n--- VIDEO: ${a.name} (${(a.size / 1048576).toFixed(1)} MB, AI tidak bisa menonton; video tampil di layar pengguna) ---`;
+        return `\n\n--- FILE: ${a.name} (${(a.size / 1024).toFixed(0)} KB) ---\n${a.text || '[tidak terbaca]'}`;
+      }).join('');
       content += attText;
     }
     return { role: m.role === 'assistant' ? 'assistant' : 'user', content };
@@ -506,11 +629,11 @@ function buildRequest(messages) {
   if (p === 'gemini') {
     const sys = messages.find(m => m.role === 'system');
     const contents = messages.filter(m => m.role !== 'system').map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
-    const body = { contents, systemInstruction: sys ? { parts: [{ text: sys.content }] } : undefined };
+    const body = { contents, systemInstruction: sys ? { parts: [{ text: sys.content }] } : undefined, generationConfig: { maxOutputTokens: 4096 } };
     if (LS.grounding) body.tools = [{ google_search: {} }];
     return { url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body, parser: 'gemini' };
   }
-  const body = { model, messages, stream: true };
+  const body = { model, messages, stream: true, max_tokens: 4096 };
   if (p === 'pollinations') return { url: 'https://text.pollinations.ai/openai', headers: { 'Content-Type': 'application/json', ...(key ? { Authorization: `Bearer ${key}` } : {}) }, body, parser: 'openai' };
   if (p === 'openrouter') return { url: 'https://openrouter.ai/api/v1/chat/completions', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': location.origin, 'X-Title': 'KatakCode' }, body, parser: 'openai' };
   return { url: 'https://api.openai.com/v1/chat/completions', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` }, body, parser: 'openai' };
@@ -644,7 +767,10 @@ async function sendMessage(text) {
       if (acc) { state.messages.push(assistantMsg); renderMessages(); await persistChat(); } else renderMessages();
       return;
     }
-    const detail = String(err.message || err).replace(/<[^>]+>/g, ' ').slice(0, 260);
+    let detail = String(err.message || err).replace(/<[^>]+>/g, ' ').slice(0, 260);
+    if (/429|limit|quota|length|token|maximum|too large|context|overload/i.test(detail)) {
+      detail = `Model gratis kehabisan jatah/token untuk permintaan sebesar ini.\nCoba pecah permintaanmu: minta struktur dulu, baru bagian-bagiannya — atau pakai model/key lain (Gemini gratis disarankan).\n\nDetail asli: ${detail}`;
+    }
     showErrorBubble(`Kodok gagal menjawab.\n${detail}`);
   }
 }
@@ -667,6 +793,28 @@ $('#messages').addEventListener('click', (e) => {
   if (copyCode) {
     const pre = copyCode.closest('.codeblock')?.querySelector('pre');
     if (pre) navigator.clipboard?.writeText(pre.innerText).then(() => { copyCode.textContent = 'Tersalin'; setTimeout(() => (copyCode.textContent = 'Salin'), 1600); });
+    return;
+  }
+  const download = e.target.closest('[data-download]');
+  if (download) {
+    const pre = download.closest('.codeblock')?.querySelector('pre');
+    const lang = download.closest('.codeblock')?.querySelector('.code-head span')?.textContent.trim() || 'txt';
+    if (pre) {
+      const extMap = { html: 'html', htm: 'html', javascript: 'js', js: 'js', typescript: 'ts', ts: 'ts', tsx: 'tsx', jsx: 'jsx', python: 'py', py: 'py', css: 'css', scss: 'scss', json: 'json', sql: 'sql', bash: 'sh', sh: 'sh', markdown: 'md', md: 'md', yaml: 'yml', xml: 'xml', php: 'php', java: 'java', go: 'go', rust: 'rs' };
+      const blob = new Blob([pre.innerText], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `kodok-${Date.now()}.${extMap[lang.toLowerCase()] || 'txt'}`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('File diunduh');
+    }
+    return;
+  }
+  const preview = e.target.closest('[data-preview]');
+  if (preview) {
+    const pre = preview.closest('.codeblock')?.querySelector('pre');
+    if (pre) { $('#previewFrame').srcdoc = pre.innerText; $('#previewModal').hidden = false; }
     return;
   }
   const copyMsg = e.target.closest('[data-copy-msg]');
@@ -702,6 +850,8 @@ function showToast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
 }
+
+$('#closePreview').addEventListener('click', () => { $('#previewModal').hidden = true; $('#previewFrame').removeAttribute('srcdoc'); });
 
 /* ================= SW & INIT ================= */
 if ('serviceWorker' in navigator) {

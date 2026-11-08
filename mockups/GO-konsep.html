@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KatakCode GO — Mockup Konsep (Buggames Studio)</title>
+<style>
+  :root { --cream:#faf9f5; --ink:#1f1e1c; --coral:#d97757; --deep:#b8502f; --gold:#e6c26b; --line:#e8e6df; --dim:#6f6e69; }
+  * { box-sizing: border-box; margin: 0; }
+  body { background:#26241f; display:flex; flex-wrap:wrap; gap:36px; align-items:flex-start; justify-content:center; min-height:100vh; padding:36px 14px; font-family: ui-serif, Georgia, serif; }
+  .screen { display:flex; flex-direction:column; gap:10px; }
+  .screen-label { text-align:center; color:#a8a49a; font-size:.68rem; letter-spacing:.18em; font-weight:700; font-family: ui-sans-serif, system-ui; }
+  .phone { width:365px; height:740px; background:var(--cream); border-radius:34px; overflow:hidden; position:relative; box-shadow:0 36px 76px rgba(0,0,0,.55), 0 0 0 9px #141414; display:flex; flex-direction:column; color:var(--ink); }
+  .koncep { position:absolute; top:12px; right:-38px; z-index:5; background:var(--coral); color:#fff; font-family: ui-sans-serif, system-ui; font-size:.6rem; font-weight:800; letter-spacing:.18em; padding:5px 46px; transform:rotate(45deg); }
+
+  /* ===== LAYAR 1 — LIMIT HABIS (gratis) ===== */
+  .limit { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px 24px; gap:10px; }
+  .limit h1 { font-size:1.35rem; letter-spacing:-.02em; line-height:1.25; margin:0; }
+  .limit p { color:var(--dim); font-family: ui-sans-serif, system-ui; font-size:.78rem; line-height:1.6; margin:0; }
+  .refill { display:flex; align-items:center; gap:10px; background:#fff; border:1px solid var(--line); border-radius:14px; padding:10px 14px; font-family: ui-sans-serif, system-ui; font-size:.75rem; margin-top:4px; }
+  .refill b { font-variant-numeric: tabular-nums; color:var(--deep); }
+  .btn { border:0; border-radius:999px; padding:12px 20px; font-family: ui-sans-serif, system-ui; font-weight:750; font-size:.82rem; cursor:pointer; width:100%; }
+  .btn-gold { background:var(--gold); color:#241a05; margin-top:6px; box-shadow:0 8px 24px rgba(230,194,107,.35); }
+  .btn-ghost { background:transparent; color:var(--dim); border:1px solid var(--line); }
+  .hint-link { font-family: ui-sans-serif, system-ui; font-size:.72rem; color:var(--deep); text-decoration:underline; cursor:pointer; }
+
+  /* ===== LAYAR 2 — KATAKCODE GO ===== */
+  .go { flex:1; display:flex; flex-direction:column; padding:20px 18px 16px; gap:12px; overflow-y:auto; }
+  .go-crown { display:flex; justify-content:center; margin:6px 0 0; }
+  .go h1 { text-align:center; font-size:1.75rem; letter-spacing:-.02em; margin:0; }
+  .go h1 span { color:var(--deep); }
+  .go-sub { text-align:center; font-family: ui-sans-serif, system-ui; font-size:.72rem; color:var(--dim); margin:0; }
+  .price { text-align:center; margin:4px 0; }
+  .price b { font-size:2.6rem; letter-spacing:-.03em; color:var(--deep); }
+  .price small { display:block; font-family: ui-sans-serif, system-ui; color:var(--dim); font-size:.66rem; }
+  .perks { background:#fff; border:1px solid var(--line); border-radius:16px; padding:12px 14px; display:flex; flex-direction:column; gap:9px; }
+  .perk { display:flex; gap:10px; align-items:flex-start; font-family: ui-sans-serif, system-ui; font-size:.76rem; line-height:1.45; }
+  .perk b { font-family: ui-sans-serif, system-ui; }
+  .perk svg { width:17px; height:17px; flex:0 0 auto; margin-top:1px; }
+  .note { font-family: ui-sans-serif, system-ui; font-size:.58rem; color:#a8a49a; text-align:center; line-height:1.55; margin:0; }
+  .btn-coral { background:var(--coral); color:#fff; box-shadow:0 10px 28px rgba(217,119,87,.4); }
+  .go-foot { text-align:center; font-family: ui-sans-serif, system-ui; font-size:.6rem; color:#a8a49a; }
+</style>
+</head>
+<body>
+
+<!-- ===== 01 — LIMIT GRATIS HABIS ===== -->
+<div class="screen">
+  <div class="screen-label">01 — LAYAR LIMIT HABIS (GRATIS)</div>
+  <div class="phone">
+    <div class="koncep">KONSEP</div>
+    <div class="limit">
+      <svg width="150" height="120" viewBox="0 0 150 126" role="img" aria-label="Kodok kehabisan tenaga">
+        <ellipse cx="75" cy="112" rx="32" ry="6" fill="#e6e3d9"/>
+        <ellipse cx="75" cy="76" rx="45" ry="33" fill="#4aa768"/>
+        <path d="M44 38l11 9M55 38l-11 9" stroke="#1f1e1c" stroke-width="3.6" stroke-linecap="round"/>
+        <path d="M94 38l11 9M105 38l-11 9" stroke="#1f1e1c" stroke-width="3.6" stroke-linecap="round"/>
+        <path d="M55 88q20 14 40 0" stroke="#1f1e1c" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      </svg>
+      <h1>Kodok sudah <br/>kerja keras hari ini…</h1>
+      <p>Batas gratismu (OpenRouter Free) habis.<br/>Kodok butuh istirahat sampai besok, atau kamu bisa naik kelas.</p>
+      <div class="refill">Sisa tenaga kembali dalam <b>07:12:34</b></div>
+      <button class="btn btn-gold">Lihat KatakCode GO — Rp12.000</button>
+      <button class="btn btn-ghost">Pakai API key sendiri (tetap gratis)</button>
+      <span class="hint-link">Apa itu KatakCode GO?</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 02 — KATAKCODE GO ===== -->
+<div class="screen">
+  <div class="screen-label">02 — KATAKCODE GO (RP12.000 / BULAN)</div>
+  <div class="phone">
+    <div class="koncep">KONSEP</div>
+    <div class="go">
+      <div class="go-crown">
+        <svg width="86" height="80" viewBox="0 0 88 82" role="img" aria-label="Kodok raja">
+          <path d="M14 30l-4 26a6 6 0 0 0 6 7h62a6 6 0 0 0 6-7l-4-26-18 12-14-24-14 24z" fill="#e6c26b" stroke="#b8903a" stroke-width="2" stroke-linejoin="round"/>
+          <ellipse cx="44" cy="72" rx="26" ry="8" fill="#4aa768"/>
+          <circle cx="34" cy="66" r="6" fill="#4aa768"/><circle cx="54" cy="66" r="6" fill="#4aa768"/>
+          <circle cx="34" cy="64" r="3.6" fill="#fff"/><circle cx="54" cy="64" r="3.6" fill="#fff"/>
+          <circle cx="34.7" cy="64.7" r="1.8" fill="#1f1e1c"/><circle cx="54.7" cy="64.7" r="1.8" fill="#1f1e1c"/>
+        </svg>
+      </div>
+      <h1>KatakCode <span>GO</span></h1>
+      <p class="go-sub">Batasan hilang. Kodingan jadi ringan.</p>
+      <div class="price"><b>12rb</b><small>rupiah / bulan · dibatalkan kapan pun · QRIS, GoPay, OVO</small></div>
+
+      <div class="perks">
+        <div class="perk"><svg viewBox="0 0 24 24" fill="none" stroke="#2e9e5b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l6 6L20 6.5"/></svg><span><b>Tanpa batas pertanyaan</b><br/>pakai model kuat (Claude / GPT / Gemini Pro)</span></div>
+        <div class="perk"><svg viewBox="0 0 24 24" fill="none" stroke="#2e9e5b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l6 6L20 6.5"/></svg><span><b>Output panjang</b><br/>ratusan baris kode tanpa terpotong</span></div>
+        <div class="perk"><svg viewBox="0 0 24 24" fill="none" stroke="#2e9e5b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l6 6L20 6.5"/></svg><span><b>Mode Web tanpa batas</b><br/>googling langsung dari jawaban AI</span></div>
+        <div class="perk"><svg viewBox="0 0 24 24" fill="none" stroke="#2e9e5b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l6 6L20 6.5"/></svg><span><b>Prioritas antrian</b><br/>diproses lebih dulu dari pengguna gratis</span></div>
+        <div class="perk"><svg viewBox="0 0 24 24" fill="none" stroke="#2e9e5b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l6 6L20 6.5"/></svg><span><b>Kodok eksklusif</b><br/>maskot kodok raja + tema GO</span></div>
+      </div>
+
+      <button class="btn btn-coral">Langganan GO — Rp12.000 / bln</button>
+      <p class="go-foot">Dibayarkan ke Buggames Studio · batal kapan pun</p>
+      <p class="note">MOCKUP KONSEP DESAIN — tidak ada pembayaran di dalam aplikasi ini. Produk nyata butuh server + QRIS/Midtrans + rekening. KatakCode tetap gratis dengan API key sendiri.</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

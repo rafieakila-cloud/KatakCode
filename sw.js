@@ -1,5 +1,5 @@
 /* KatakCode — Service Worker v1: app shell cache-first (offline) */
-const CACHE = 'katakcode-v2';
+const CACHE = 'katakcode-v4';
 const PRECACHE = [
   './',
   './index.html',

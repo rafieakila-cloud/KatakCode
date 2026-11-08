@@ -203,6 +203,7 @@ body {
 .link-url { color: #1a5dc4; font-family: var(--sans); font-size: .72rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Code block */
+.code-actions { display: flex; gap: 6px; }
 .codeblock { background: var(--code-bg); border: 1px solid var(--code-line); border-radius: 14px; overflow: hidden; margin: 9px 0; }
 .code-head { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; background: var(--code-panel); border-bottom: 1px solid var(--code-line); font-family: var(--sans); font-size: .62rem; color: #a8a49a; }
 .copy-btn { background: none; border: 1px solid var(--code-line); color: #c8c4b8; border-radius: 7px; font-size: .6rem; padding: 4px 9px; cursor: pointer; font-family: var(--sans); }
@@ -229,6 +230,14 @@ body {
 .project-chip b { color: var(--coral-deep); max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chip-project { display: inline-flex; align-items: center; gap: 7px; color: var(--coral-deep); border-color: #eccbb9; }
 .chip-project svg { width: 15px; height: 15px; stroke: var(--coral); stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.cicon.listening { color: #b3261e; animation: micPulse 1s ease-in-out infinite; background: #fdf0ee; }
+@keyframes micPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(179,38,30,.35); } 50% { box-shadow: 0 0 0 7px rgba(179,38,30,.12); } }
+.media-chips { align-items: flex-end; }
+.media-chip { max-width: 260px; }
+.chip-thumb { width: 38px; height: 38px; object-fit: cover; border-radius: 8px; flex: 0 0 auto; }
+.msg-img { max-width: 240px; max-height: 240px; border-radius: 14px; border: 1px solid var(--line); object-fit: cover; }
+.msg-video { max-width: 280px; width: 100%; border-radius: 14px; background: #000; aspect-ratio: 16/9; }
+.msg .attach-chips.media-chips { margin-bottom: 6px; }
 .attach-row .file-chip { max-width: 220px; padding-right: 7px; }
 .attach-row .file-chip button { background: none; border: 0; color: var(--faint); cursor: pointer; display: grid; place-items: center; padding: 0; width: 18px; height: 18px; }
 .attach-row .file-chip button svg { width: 13px; height: 13px; stroke-width: 2; }
@@ -292,6 +301,12 @@ body {
 .btn-danger-ghost:hover { background: #fdf0ee; }
 .btn-danger-ghost svg { width: 17px; height: 17px; }
 .credit { text-align: center; font-family: var(--sans); font-size: .62rem; color: var(--faint); margin-top: 18px; }
+
+/* ================= PREVIEW MODAL ================= */
+.preview-modal { position: fixed; inset: 0; z-index: 55; background: #26241f; display: flex; flex-direction: column; animation: settingsIn .25s ease; }
+.preview-head { display: flex; align-items: center; justify-content: space-between; padding: calc(10px + env(safe-area-inset-top)) 14px 10px; border-bottom: 1px solid var(--line-2); background: var(--cream); }
+.preview-title { font-family: var(--sans); font-size: .68rem; font-weight: 800; letter-spacing: .18em; color: var(--dim); }
+#previewFrame { flex: 1; border: 0; background: #fff; }
 
 /* ================= TOAST ================= */
 .toast {

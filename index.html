@@ -18,6 +18,7 @@
   <symbol id="i-menu" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></symbol>
   <symbol id="i-newchat" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M3.5 7a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M4 12.5l6 6L20 6.5"/></symbol>
   <symbol id="i-attach" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M21 11.5l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l8.5-8.5a4 4 0 0 1 5.7 5.7l-8.5 8.5a2.5 2.5 0 0 1-3.5-3.5l7.8-7.8"/></symbol>
@@ -91,6 +92,7 @@
       <button class="chip">Fix error di file ini</button>
       <button class="chip">Tulis unit test</button>
       <button class="chip">Konversi ke TypeScript</button>
+      <button class="chip chip-project" id="emptyAddProject"><svg><use href="#i-folder"/></svg>Tambah Folder Proyek</button>
     </div>
   </div>
 
@@ -101,7 +103,8 @@
   <div class="composer" id="composer">
     <div class="attach-row" id="attachRow" hidden></div>
     <div class="input-row">
-      <button class="cicon" id="btnAttach" aria-label="Lampirkan file kode/dokumen"><svg><use href="#i-attach"/></svg></button>
+      <button class="cicon" id="btnProject" aria-label="Tambah folder proyek" title="Tambah folder proyek"><svg><use href="#i-folder"/></svg></button>
+      <button class="cicon" id="btnAttach" aria-label="Lampirkan file kode/dokumen" title="Lampirkan file"><svg><use href="#i-attach"/></svg></button>
       <textarea id="input" rows="1" placeholder="Tanya kodok…" aria-label="Ketik pertanyaan"></textarea>
       <button class="cicon" id="btnMic" aria-label="Dikte suara"><svg><use href="#i-mic"/></svg></button>
       <button class="send" id="btnSend" aria-label="Kirim"><svg><use href="#i-send"/></svg></button>
@@ -111,6 +114,7 @@
 </main>
 
 <input type="file" id="fileInput" accept=".js,.ts,.jsx,.tsx,.py,.java,.c,.cpp,.h,.cs,.go,.rs,.rb,.php,.swift,.kt,.html,.css,.scss,.vue,.svelte,.json,.md,.txt,.yml,.yaml,.toml,.sql,.env,.gitignore,.sh,.bat,.ps1" multiple hidden />
+<input type="file" id="projectInput" webkitdirectory multiple hidden />
 
 <!-- ===== PENGATURAN AI (layar penuh) ===== -->
 <div class="settings-view" id="settingsView" hidden role="dialog" aria-label="Pengaturan AI">

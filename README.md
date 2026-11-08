@@ -7,6 +7,7 @@
 - 🤖 **Multi-provider** — 🌸 Pollinations (gratis) · 🔀 OpenRouter · ✨ Gemini (dengan **Mode Web / Google Search grounding**) · ○ OpenAI
 - 💬 **Chat streaming** (SSE) dengan indikator mengetik maskot **kodok**: melompat (tanya biasa) / mengetik + tekan **ENTER** (tanya kode) / membuka dokumen (ada lampiran)
 - 📎 **Lampirkan file kode/dokumen** (.js, .py, .md, …) — kodok baca isinya, tetap dalam konteks chat
+- 📁 **Folder Proyek** — tambah seluruh folder, kodok baca struktur & isinya (kode/teks, maks ±40 file / 200 KB) langsung jadi konteks setiap pertanyaan. Jalan di Chrome Android & desktop (`webkitdirectory`)
 - 🗂️ **Riwayat chat** tersimpan lokal (IndexedDB), dikelompokkan per tanggal, bisa dibuka/hapus
 - 🎤 **Suara** — dikte pertanyaan dengan mic, atau kodok bacakan jawaban (Web Speech API)
 - 🔗 **Link card** — URL di jawaban tampil dengan favicon + URL biru; link yang kamu kirim dibaca otomatis (best effort)

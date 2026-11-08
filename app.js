@@ -168,6 +168,7 @@ const state = {
   messages: [],          // [{role, content, attachments?:[{name,size,text}], t}]
   streaming: false,
   attachments: [],       // lampiran belum terkirim
+  project: null,         // { name, files: [{ path, text, size }] }
   abortCtrl: null,
   lastAiId: null,
 };
@@ -219,8 +220,10 @@ function renderContent(raw) {
 
 function bubbleHTML(msg, id) {
   if (msg.role === 'user') {
+    const proj = msg.project ? `<span class="file-chip project-chip"><svg><use href="#i-folder"/></svg><b>${escapeHTML(msg.project)}</b>proyek</span>` : '';
     const chips = (msg.attachments || []).filter(a => a && a.name).map(a => `<span class="file-chip"><svg><use href="#i-file"/></svg><b>${escapeHTML(a.name)}</b>${a.size ? (a.size / 1024).toFixed(0) + ' KB' : ''}</span>`).join('');
-    return `<div class="msg user">${chips ? `<div class="attach-chips">${chips}</div>` : ''}<div class="bubble">${linkifyHTML(msg.content)}</div></div>`;
+    const allChips = proj + chips;
+    return `<div class="msg user">${allChips ? `<div class="attach-chips">${allChips}</div>` : ''}<div class="bubble">${linkifyHTML(msg.content)}</div></div>`;
   }
   return `<div class="msg assistant" data-msg-id="${id}">
     <div class="bubble">${renderContent(msg.content)}</div>
@@ -305,6 +308,7 @@ function openChat(id) {
   state.currentId = id;
   state.messages = (chat.messages || []).map(m => ({ ...m }));
   state.attachments = [];
+  state.project = chat.project || null;
   renderAttachRow();
   renderMessages();
   renderHistory();
@@ -313,6 +317,7 @@ function newChat() {
   state.currentId = null;
   state.messages = [];
   state.attachments = [];
+  state.project = null;
   renderAttachRow();
   renderMessages();
   renderHistory();
@@ -337,12 +342,42 @@ async function persistChat() {
   chat.provider = LS.provider;
   chat.model = LS.model(LS.provider);
   chat.messages = state.messages;
+  chat.project = state.project || null;
   await dbSaveChat(chat);
   renderHistory();
 }
 
 /* ================= LAMPIRAN ================= */
 $('#btnAttach').addEventListener('click', () => $('#fileInput').click());
+const PROJECT_EXTS = /\.(js|jsx|ts|tsx|mjs|cjs|py|java|c|cc|cpp|h|hpp|cs|go|rs|rb|php|swift|kt|kts|m|html|css|scss|less|vue|svelte|json|md|txt|ya?ml|toml|ini|env|sh|bash|ps1|sql|xml|gradle|properties|cfg|conf|dockerfile|gitignore|lock)$/i;
+
+$('#btnProject').addEventListener('click', () => $('#projectInput').click());
+$('#emptyAddProject').addEventListener('click', () => $('#projectInput').click());
+$('#projectInput').addEventListener('change', async (e) => {
+  const files = [...e.target.files];
+  e.target.value = '';
+  if (!files.length) return;
+  const docs = [];
+  let total = 0;
+  for (const f of files) {
+    if (docs.length >= 40) break;
+    if (f.size > 80 * 1024) continue;
+    if (!PROJECT_EXTS.test(f.name) && !/^(dockerfile|makefile|readme)$/i.test(f.name)) continue;
+    let text = '';
+    try { text = await f.text(); } catch { continue; }
+    if (text.includes('\0')) continue;
+    const slice = text.slice(0, 55 * 1024);
+    if (total + slice.length > 200 * 1024) break;
+    total += slice.length;
+    docs.push({ path: f.webkitRelativePath || f.name, text: slice, size: f.size });
+  }
+  if (!docs.length) { showToast('Tidak ada file kode/teks yang terbaca di folder itu'); return; }
+  const projectName = (files[0].webkitRelativePath || files[0].name).split('/')[0] || 'proyek';
+  state.project = { name: projectName, files: docs };
+  renderAttachRow();
+  showToast(`Proyek "${projectName}" dimuat — ${docs.length} file dibaca`);
+});
+
 $('#fileInput').addEventListener('change', async (e) => {
   const files = [...e.target.files].slice(0, 6);
   let total = state.attachments.reduce((s, a) => s + (a.text || '').length, 0);
@@ -359,10 +394,20 @@ $('#fileInput').addEventListener('change', async (e) => {
 });
 function renderAttachRow() {
   const row = $('#attachRow');
-  if (!state.attachments.length) { row.hidden = true; row.innerHTML = ''; return; }
+  const items = [];
+  if (state.project) {
+    const totalKB = Math.round(state.project.files.reduce((s, f) => s + (f.text || '').length, 0) / 1024);
+    items.push(`<span class="file-chip project-chip"><svg><use href="#i-folder"/></svg><b>${escapeHTML(state.project.name)}</b>${state.project.files.length} file · ${totalKB} KB<button data-detach-project aria-label="Lepas proyek" title="Lepas proyek"><svg><use href="#i-close"/></svg></button></span>`);
+  }
+  state.attachments.forEach((a, i) => {
+    items.push(`<span class="file-chip"><svg><use href="#i-file"/></svg><b>${escapeHTML(a.name)}</b>${(a.size / 1024).toFixed(0)} KB<button data-detach="${i}" aria-label="Lepas file" title="Lepas"><svg><use href="#i-close"/></svg></button></span>`);
+  });
+  if (!items.length) { row.hidden = true; row.innerHTML = ''; return; }
   row.hidden = false;
-  row.innerHTML = state.attachments.map((a, i) => `<span class="file-chip"><svg><use href="#i-file"/></svg><b>${escapeHTML(a.name)}</b>${(a.size / 1024).toFixed(0)} KB<button data-detach="${i}" aria-label="Lepas file" title="Lepas"><svg><use href="#i-close"/></svg></button></span>`).join('');
+  row.innerHTML = items.join('');
   $$('[data-detach]', row).forEach(btn => btn.addEventListener('click', () => { state.attachments.splice(+btn.dataset.detach, 1); renderAttachRow(); }));
+  const dp = $('[data-detach-project]', row);
+  if (dp) dp.addEventListener('click', () => { state.project = null; renderAttachRow(); showToast('Proyek dilepas'); });
 }
 
 /* ================= SUARA ================= */
@@ -403,7 +448,18 @@ else {
 
 /* ================= KIRIM & STREAMING ================= */
 function buildMessages() {
-  const sys = { role: 'system', content: SYSTEM_PROMPT() };
+  const projectCtx = state.project
+    ? `\n\n=== PROYEK PENGGUNA: ${state.project.name} (${state.project.files.length} file) ===\nStruktur:\n${state.project.files.map(f => f.path).join('\n')}\n${(() => {
+        let budget = 22000, out = '';
+        for (const f of state.project.files) {
+          const block = `\n--- FILE: ${f.path} ---\n${f.text}\n`;
+          if (budget - block.length < 0) { out += `\n--- FILE: ${f.path} --- [tidak dimuat — terlalu besar]\n`; continue; }
+          budget -= block.length; out += block;
+        }
+        return out;
+      })()}\n=== AKHIR PROYEK ===`
+    : '';
+  const sys = { role: 'system', content: SYSTEM_PROMPT() + projectCtx };
   const history = state.messages.slice(-24).map(m => {
     let content = m.content;
     if (m.attachments?.length) {
@@ -528,7 +584,7 @@ async function sendMessage(text) {
   // Sisipkan link yang dilampirkan ke pesan
   const linkContext = await readLinksFromMessage(content);
 
-  state.messages.push({ role: 'user', content, attachments: [...state.attachments], t: Date.now() });
+  state.messages.push({ role: 'user', content, attachments: [...state.attachments], project: state.project ? state.project.name : null, t: Date.now() });
   if (linkContext) {
     const last = state.messages[state.messages.length - 1];
     last.content = content + linkContext;
@@ -631,6 +687,7 @@ $('#messages').addEventListener('click', (e) => {
 
 /* Saran */
 $$('#suggestRow .chip').forEach(chip => chip.addEventListener('click', () => {
+  if (chip.id === 'emptyAddProject') return;
   $('#input').value = chip.textContent;
   $('#input').focus();
 }));

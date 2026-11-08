@@ -224,6 +224,11 @@ body {
   box-shadow: 0 10px 30px rgba(31,30,28,.10); padding: 8px 9px; position: relative; z-index: 5;
 }
 .attach-row { display: flex; gap: 7px; flex-wrap: wrap; padding: 2px 4px 8px; }
+.project-chip { background: #fdf1e8; border-color: #eccbb9; color: var(--coral-deep); }
+.project-chip svg { color: var(--coral); }
+.project-chip b { color: var(--coral-deep); max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-project { display: inline-flex; align-items: center; gap: 7px; color: var(--coral-deep); border-color: #eccbb9; }
+.chip-project svg { width: 15px; height: 15px; stroke: var(--coral); stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .attach-row .file-chip { max-width: 220px; padding-right: 7px; }
 .attach-row .file-chip button { background: none; border: 0; color: var(--faint); cursor: pointer; display: grid; place-items: center; padding: 0; width: 18px; height: 18px; }
 .attach-row .file-chip button svg { width: 13px; height: 13px; stroke-width: 2; }
